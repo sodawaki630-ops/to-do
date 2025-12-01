@@ -1,6 +1,5 @@
 import streamlit as st, random, time, pandas as pd, os
 
-# -------------------------
 st.set_page_config(page_title="Neon Math Rush", layout="centered", page_icon="🧮")
 
 # Neon CSS
@@ -16,43 +15,46 @@ input[type="text"]{background:rgba(0,255,255,0.05);border:2px solid rgba(0,255,2
 </style>
 """,unsafe_allow_html=True)
 
-# -------------------------
 # Session state init
-for k in ["score","round","current_q","last_result","speed_start","speed_answer","game_mode","speed_name"]:
+keys = ["score","round","current_q","last_result","speed_start","speed_answer","game_mode","speed_name","combo"]
+for k in keys:
     if k not in st.session_state:
-        st.session_state[k]=0 if k in ["score","round"] else None if k in ["current_q","speed_start"] else "" if k in ["speed_answer","speed_name"] else "Easy"
+        st.session_state[k]=0 if k in ["score","round","combo"] else None if k in ["current_q","speed_start"] else "" if k in ["speed_answer","speed_name"] else "Easy"
 
-# -------------------------
+# Helper functions
 def gen_q(mode):
-    a,b,op = random.randint(1,10),random.randint(1,10),random.choice(["+","-","×","÷"]) if mode=="Hard" else random.choice(["+","-","×"]) if mode=="Medium" else random.choice(["+","-"])
+    a,b = random.randint(1,10), random.randint(1,10)
+    if mode=="Medium": a,b=random.randint(5,20),random.randint(1,15); op=random.choice(["+","-","×"])
+    elif mode=="Hard": a,b=random.randint(10,80),random.randint(5,30); op=random.choice(["+","-","×","÷"])
+    elif mode=="Speed": a,b=random.randint(1,15),random.randint(1,15); op=random.choice(["+","-","×"])
+    else: op=random.choice(["+","-"])
     if op=="÷": b=random.randint(1,12); a=b*random.randint(1,10)
     correct = a+b if op=="+" else a-b if op=="-" else a*b if op=="×" else a//b
     return {"a":a,"b":b,"op":op,"correct":correct}
 
-def check_ans(ans, q):
-    if ans.strip().lstrip("-").isdigit():
-        return int(ans)==q["correct"]
+def check_ans(ans,q):
+    if ans.strip().lstrip("-").isdigit(): return int(ans)==q["correct"]
     return None
 
-def show_emoji(result):
-    if result=="correct": st.markdown("<div class='big-emoji'>🎉</div>",unsafe_allow_html=True)
+def show_emoji(result,combo=0):
+    if result=="correct": st.markdown(f"<div class='big-emoji'>🎉{'🔥'*combo}</div>",unsafe_allow_html=True)
     elif result=="wrong": st.markdown("<div class='big-emoji'>❌</div>",unsafe_allow_html=True)
 
-# -------------------------
+# Sidebar
 st.sidebar.title("📱 Menu")
 page = st.sidebar.radio("", ["Home","Play","Speed Mode","Leaderboard"])
 st.markdown("<h1 class='title'>NEON MATH RUSH</h1>",unsafe_allow_html=True)
 
-# -------------------------
+# Home
 if page=="Home":
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     st.markdown("### 🎮 วิธีเล่น")
     st.markdown("- เลือก Play หรือ Speed Mode")
-    st.markdown("- ตอบคำถามให้ถูกเพื่อเพิ่มคะแนน")
-    st.markdown("- Speed Mode มีตัวจับเวลา")
+    st.markdown("- Hard Mode: ตัวเลขใหญ่+ผสม + - × ÷")
+    st.markdown("- Speed Combo: ตอบต่อเนื่องได้ Combo Multiplier")
     st.markdown("</div>",unsafe_allow_html=True)
 
-# -------------------------
+# Play Mode
 elif page=="Play":
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     mode=st.selectbox("ระดับความยาก",["Easy","Medium","Hard"],index=["Easy","Medium","Hard"].index(st.session_state.game_mode))
@@ -64,23 +66,28 @@ elif page=="Play":
     if st.button("ส่ง"):
         res=check_ans(ans,q)
         if res is not None:
-            if res: st.session_state.score+=1; st.session_state.last_result="correct"
-            else: st.session_state.last_result="wrong"
+            if res: 
+                st.session_state.score+=1+st.session_state.combo
+                st.session_state.last_result="correct"
+                st.session_state.combo+=1
+            else: 
+                st.session_state.last_result="wrong"
+                st.session_state.combo=0
             st.session_state.current_q=gen_q(mode)
             st.session_state.round+=1
             st.session_state.play_answer=""
             st.experimental_rerun()
         else: st.warning("กรุณากรอกตัวเลข")
-    show_emoji(st.session_state.last_result)
-    st.markdown(f"รอบ:{st.session_state.round} | คะแนน:{st.session_state.score}")
+    show_emoji(st.session_state.last_result,st.session_state.combo)
+    st.markdown(f"รอบ:{st.session_state.round} | คะแนน:{st.session_state.score} | Combo:{st.session_state.combo}")
 
-# -------------------------
+# Speed Mode
 elif page=="Speed Mode":
     time_limit = st.slider("เวลา (วินาที)",10,60,20,5)
     if st.session_state.current_q is None: st.session_state.current_q=gen_q("Speed")
     if st.session_state.speed_start is None:
         if st.button("เริ่ม ▶"):
-            st.session_state.speed_start=time.time(); st.session_state.score=0; st.session_state.round=0
+            st.session_state.speed_start=time.time(); st.session_state.score=0; st.session_state.round=0; st.session_state.combo=0
             st.session_state.current_q=gen_q("Speed"); st.session_state.speed_answer=""
             st.experimental_rerun()
         else: st.info("กดเริ่มเพื่อจับเวลา"); st.stop()
@@ -95,7 +102,7 @@ elif page=="Speed Mode":
                 df=pd.read_csv("leaderboard.csv") if os.path.exists("leaderboard.csv") else pd.DataFrame()
                 df=pd.concat([df,pd.DataFrame([row])],ignore_index=True)
                 df.to_csv("leaderboard.csv",index=False)
-                st.success("บันทึกคะแนน 🎉"); st.session_state.speed_start=None; st.session_state.current_q=None
+                st.success("บันทึกคะแนน 🎉"); st.session_state.speed_start=None; st.session_state.current_q=None; st.session_state.combo=0
             else: st.warning("กรุณากรอกชื่อ")
         st.stop()
     q=st.session_state.current_q
@@ -104,14 +111,14 @@ elif page=="Speed Mode":
     if st.button("ส่ง (เร็ว)"):
         res=check_ans(ans,q)
         if res is not None:
-            if res: st.session_state.score+=1; st.session_state.last_result="correct"
-            else: st.session_state.last_result="wrong"
+            if res: st.session_state.score+=1+st.session_state.combo; st.session_state.last_result="correct"; st.session_state.combo+=1
+            else: st.session_state.last_result="wrong"; st.session_state.combo=0
             st.session_state.current_q=gen_q("Speed"); st.session_state.speed_answer=""; st.session_state.round+=1; st.experimental_rerun()
         else: st.warning("กรุณากรอกตัวเลข")
-    show_emoji(st.session_state.last_result)
-    st.markdown(f"ตอบถูก:{st.session_state.score} | รอบ:{st.session_state.round}")
+    show_emoji(st.session_state.last_result,st.session_state.combo)
+    st.markdown(f"ตอบถูก:{st.session_state.score} | รอบ:{st.session_state.round} | Combo:{st.session_state.combo}")
 
-# -------------------------
+# Leaderboard
 elif page=="Leaderboard":
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     st.markdown("<h3>🏆 Leaderboard</h3>",unsafe_allow_html=True)
