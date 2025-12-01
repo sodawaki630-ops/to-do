@@ -2,12 +2,15 @@ import streamlit as st, random, time, pandas as pd, os
 
 st.set_page_config(page_title="Neon Math Rush", layout="centered", page_icon="🧮")
 
-# ------------------------- Neon CSS
+# ------------------------- Neon Animated CSS + Combo Flash
 st.markdown("""
 <style>
-body{background:radial-gradient(circle,#0f0f1c,#050510);color:#e7faff;font-family:sans-serif;}
+@keyframes neon-bg {0%{background-position:0 0}50%{background-position:100% 100%}100%{background-position:0 0}}
+body{background:linear-gradient(45deg,#ff00ff,#00ffff,#00ff00,#ff0000);background-size:400% 400%;animation:neon-bg 10s ease infinite;color:#e7faff;font-family:sans-serif;}
 .title{font-size:46px;text-align:center;color:#00eaff;text-shadow:0 0 8px #00eaff,0 0 16px #00eaff;}
-.card{background:rgba(255,255,255,0.03);border:2px solid rgba(0,255,255,0.25);padding:20px;border-radius:20px;margin-top:15px;}
+.card{background:rgba(255,255,255,0.03);border:2px solid rgba(0,255,255,0.25);padding:20px;border-radius:20px;margin-top:15px;transition:0.3s;}
+.flash{animation:flash-bg 0.3s ease 1;}
+@keyframes flash-bg{0%{background-color:#00ffff;}50%{background-color:#ff00ff;}100%{background-color:rgba(255,255,255,0.03);}}
 .big-emoji{font-size:110px;text-align:center;}
 input[type="text"]{background:rgba(0,255,255,0.05);border:2px solid rgba(0,255,255,0.3);border-radius:10px;padding:10px;color:#e7fff9;font-size:18px;}
 .question-box{font-size:42px;text-align:center;color:#affbff;margin:20px 0;}
@@ -34,9 +37,18 @@ def gen_q(mode):
 def check_ans(ans,q):
     return int(ans)==q["correct"] if ans.strip().lstrip("-").isdigit() else None
 
+# 🎉❌🔥 Emoji + Sound + Combo Flash
 def show_emoji(result,combo=0):
-    if result=="correct": st.markdown(f"<div class='big-emoji'>🎉{'🔥'*combo}</div>",unsafe_allow_html=True)
-    elif result=="wrong": st.markdown("<div class='big-emoji'>❌</div>",unsafe_allow_html=True)
+    audio_correct = "<audio autoplay><source src='https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg' type='audio/ogg'></audio>"
+    audio_wrong = "<audio autoplay><source src='https://actions.google.com/sounds/v1/cartoon/boing.ogg' type='audio/ogg'></audio>"
+    flash = "<script>document.querySelector('.card').classList.add('flash');setTimeout(()=>{document.querySelector('.card').classList.remove('flash');},300);</script>"
+    if result=="correct":
+        st.markdown(f"<div class='big-emoji'>🎉{'🔥'*combo}</div>",unsafe_allow_html=True)
+        st.markdown(audio_correct,unsafe_allow_html=True)
+        if combo>0: st.markdown(flash,unsafe_allow_html=True)
+    elif result=="wrong":
+        st.markdown("<div class='big-emoji'>❌</div>",unsafe_allow_html=True)
+        st.markdown(audio_wrong,unsafe_allow_html=True)
 
 # ------------------------- Sidebar
 st.sidebar.title("📱 Menu")
@@ -49,7 +61,7 @@ if page=="Home":
     st.markdown("### 🎮 วิธีเล่น")
     st.markdown("- เลือก Play หรือ Speed Mode")
     st.markdown("- Hard Mode: ตัวเลขใหญ่+ผสม + - × ÷")
-    st.markdown("- Speed Combo: ตอบต่อเนื่องได้ Combo Multiplier")
+    st.markdown("- Speed Combo: ตอบต่อเนื่องได้ Combo Multiplier + Flash Effect")
     st.markdown("</div>",unsafe_allow_html=True)
 
 # ------------------------- Play Mode
