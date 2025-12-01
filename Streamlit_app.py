@@ -2,8 +2,7 @@ import streamlit as st, random, time, pandas as pd, os
 
 st.set_page_config(page_title="Neon Math Rush", layout="centered", page_icon="🧮")
 
-# -------------------------
-# CSS Neon
+# ------------------------- Neon CSS
 st.markdown("""
 <style>
 body{background:radial-gradient(circle,#0f0f1c,#050510);color:#e7faff;font-family:sans-serif;}
@@ -16,15 +15,12 @@ input[type="text"]{background:rgba(0,255,255,0.05);border:2px solid rgba(0,255,2
 </style>
 """,unsafe_allow_html=True)
 
-# -------------------------
-# Session State Init
-keys=["score","round","current_q","last_result","speed_start","speed_answer","play_answer","game_mode","speed_name","combo"]
-for k in keys:
+# ------------------------- Session State Init
+for k in ["score","round","current_q","last_result","speed_start","speed_answer","play_answer","game_mode","speed_name","combo"]:
     if k not in st.session_state:
         st.session_state[k] = 0 if k in ["score","round","combo"] else None if k in ["current_q","speed_start"] else ""
 
-# -------------------------
-# Helper Functions
+# ------------------------- Helper Functions
 def gen_q(mode):
     a,b = random.randint(1,10), random.randint(1,10)
     if mode=="Medium": a,b=random.randint(5,20),random.randint(1,15); op=random.choice(["+","-","×"])
@@ -36,20 +32,18 @@ def gen_q(mode):
     return {"a":a,"b":b,"op":op,"correct":correct}
 
 def check_ans(ans,q):
-    if ans.strip().lstrip("-").isdigit(): return int(ans)==q["correct"]
-    return None
+    return int(ans)==q["correct"] if ans.strip().lstrip("-").isdigit() else None
 
 def show_emoji(result,combo=0):
     if result=="correct": st.markdown(f"<div class='big-emoji'>🎉{'🔥'*combo}</div>",unsafe_allow_html=True)
     elif result=="wrong": st.markdown("<div class='big-emoji'>❌</div>",unsafe_allow_html=True)
 
-# -------------------------
-# Sidebar
+# ------------------------- Sidebar
 st.sidebar.title("📱 Menu")
 page = st.sidebar.radio("", ["Home","Play","Speed Mode","Leaderboard"])
 st.markdown("<h1 class='title'>NEON MATH RUSH</h1>",unsafe_allow_html=True)
 
-# -------------------------
+# ------------------------- Home
 if page=="Home":
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     st.markdown("### 🎮 วิธีเล่น")
@@ -58,7 +52,7 @@ if page=="Home":
     st.markdown("- Speed Combo: ตอบต่อเนื่องได้ Combo Multiplier")
     st.markdown("</div>",unsafe_allow_html=True)
 
-# -------------------------
+# ------------------------- Play Mode
 elif page=="Play":
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     mode = st.selectbox("ระดับความยาก", ["Easy","Medium","Hard"], index=["Easy","Medium","Hard"].index(st.session_state.game_mode))
@@ -87,7 +81,7 @@ elif page=="Play":
     show_emoji(st.session_state.last_result, st.session_state.combo)
     st.markdown(f"รอบ:{st.session_state.round} | คะแนน:{st.session_state.score} | Combo:{st.session_state.combo}")
 
-# -------------------------
+# ------------------------- Speed Mode
 elif page=="Speed Mode":
     time_limit = st.slider("เวลา (วินาที)",10,60,20,5)
     if st.session_state.current_q is None: st.session_state.current_q = gen_q("Speed")
@@ -144,7 +138,7 @@ elif page=="Speed Mode":
     show_emoji(st.session_state.last_result, st.session_state.combo)
     st.markdown(f"ตอบถูก:{st.session_state.score} | รอบ:{st.session_state.round} | Combo:{st.session_state.combo}")
 
-# -------------------------
+# ------------------------- Leaderboard
 elif page=="Leaderboard":
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     st.markdown("<h3>🏆 Leaderboard</h3>",unsafe_allow_html=True)
